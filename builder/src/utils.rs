@@ -56,14 +56,16 @@ impl<'a> BuilderMacroFieldHelper<'a> {
         if self.is_option_type {
             let inner_ty = extract_generic_type(ty);
             quote! {
-                fn #name(&mut self, #name:#inner_ty) {
+                fn #name(&mut self, #name:#inner_ty) -> &mut Self {
                     self.#name = Some(#name);
+                    self
                 }
             }
         } else {
             quote! {
-                fn #name(&mut self, #name:#ty) {
+                fn #name(&mut self, #name:#ty) -> &mut Self {
                     self.#name = Some(#name);
+                    self
                 }
             }
         }
