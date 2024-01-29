@@ -1,8 +1,3 @@
-// Key 1. use full path of std struct
-// - use `std::option::Option` instead of `Option`, `Some`, `None`
-// - use `std::result::Result` instead of `Result`
-// - use `std::boxed::Box` instead of `Box`
-
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, DeriveInput};
