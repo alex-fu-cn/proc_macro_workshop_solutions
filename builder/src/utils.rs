@@ -68,6 +68,25 @@ impl<'a> BuilderMacroFieldHelper<'a> {
             }
         }
     }
+
+    // code block of build function:
+    // fn build() -> Command {
+    //     Command {
+    //         $$$$$ <- generate these
+    //     }
+    // }
+    pub fn field_build_inner_form(&self) -> proc_macro2::TokenStream {
+        let name = format_ident!("{}", self.field_name);
+        if self.is_option_type {
+            quote! {
+                #name: self.#name.clone(),
+            }
+        } else {
+            quote! {
+                #name: self.#name.clone().unwrap(),
+            }
+        }
+    }
 }
 
 // Initialize helper vector.
