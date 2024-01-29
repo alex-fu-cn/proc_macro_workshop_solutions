@@ -1,3 +1,8 @@
+// Key 1. use full path of std struct
+// - use `std::option::Option` instead of `Option`, `Some`, `None`
+// - use `std::result::Result` instead of `Result`
+// - use `std::boxed::Box` instead of `Box`
+
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, DeriveInput};
@@ -18,7 +23,6 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let helpers = match init_field_macro_helpers(&struct_data) {
         Ok(vec) => vec,
         Err(e) => {
-            // Key 4. Error returned.
             return e;
         }
     };
@@ -48,7 +52,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         .map(|h: &BuilderMacroFieldHelper<'_>| h.field_setter_from());
     let build_inner = helpers.iter().map(|h| h.field_build_inner_form());
     let builder_build_method = quote! {
-        fn build(&self) -> Result<#derive_struct_ident, Box<dyn std::error::Error>> {
+        fn build(&self) -> std::result::Result<#derive_struct_ident, std::boxed::Box<dyn std::error::Error>> {
             Ok(#derive_struct_ident {
                 #(#build_inner)*
             })
