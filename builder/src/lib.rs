@@ -37,14 +37,11 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
     };
 
+    // Key 1. change setter fn signature to return `&mut self`
     let builder_field_setter = helpers
         .iter()
         .map(|h: &BuilderMacroFieldHelper<'_>| h.field_setter_from());
-    // Key 1. builder function, construct derived struct, generate:
-    //     field_name: field_value,
-    //     ...
     let build_inner = helpers.iter().map(|h| h.field_build_inner_form());
-    // Key 2. complete the fn code.
     let builder_build_method = quote! {
         fn build(&self) -> Result<#derive_struct_ident, Box<dyn std::error::Error>> {
             Ok(#derive_struct_ident {
@@ -53,7 +50,6 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
     };
 
-    // Key 3. populate code blocks.
     let builder_implementation_block = quote! {
         impl #builder_struct_ident {
 
