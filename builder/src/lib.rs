@@ -37,13 +37,15 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
     };
 
-    // Key 1. change setter fn signature to return `&mut self`
     let builder_field_setter = helpers
         .iter()
         .map(|h: &BuilderMacroFieldHelper<'_>| h.field_setter_from());
     let build_inner = helpers.iter().map(|h| h.field_build_inner_form());
     let builder_build_method = quote! {
         fn build(&self) -> Result<#derive_struct_ident, Box<dyn std::error::Error>> {
+            // Key 2. It would be better if the test designer to add attributes like #[builder(required)],
+            // so that we can add it to `executable` and validate whether it was set or not here.
+
             Ok(#derive_struct_ident {
                 #(#build_inner)*
             })
