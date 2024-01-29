@@ -5,7 +5,8 @@ use syn::{parse_macro_input, DeriveInput};
 mod utils;
 use utils::*;
 
-#[proc_macro_derive(Builder)]
+// Key 1. builder attribute must be configured.
+#[proc_macro_derive(Builder, attributes(builder))]
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     // Pretty print DeriveInput if syn extra-traits enabled.
@@ -43,19 +44,23 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let build_inner = helpers.iter().map(|h| h.field_build_inner_form());
     let builder_build_method = quote! {
         fn build(&self) -> Result<#derive_struct_ident, Box<dyn std::error::Error>> {
-            // Key 2. It would be better if the test designer to add attributes like #[builder(required)],
-            // so that we can add it to `executable` and validate whether it was set or not here.
-
             Ok(#derive_struct_ident {
                 #(#build_inner)*
             })
         }
     };
 
+    // Key 5. generate and pupulate the code blocks
+    let builder_field_each_setter = helpers
+        .iter()
+        .map(|h: &BuilderMacroFieldHelper<'_>| h.field_setter_each_form());
+
     let builder_implementation_block = quote! {
         impl #builder_struct_ident {
 
             #(#builder_field_setter)*
+
+            #(#builder_field_each_setter)*
 
             #builder_build_method
 
