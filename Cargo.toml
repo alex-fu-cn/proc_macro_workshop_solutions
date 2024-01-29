@@ -18,4 +18,4 @@ proc-macro2 = "1.0.78"
 quote = "1.0.35"
 seq = { path = "seq" }
 sorted = { path = "sorted" }
-syn = "2.0.48"
+syn = {version = "2.0.48", features=["extra-traits"]}
