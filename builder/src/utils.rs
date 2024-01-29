@@ -101,6 +101,7 @@ pub fn init_field_macro_helpers(struct_data: &Data) -> Vec<BuilderMacroFieldHelp
                 helpers.push(BuilderMacroFieldHelper {
                     field_name: field_name,
                     field_type: &field.ty,
+                    // Key 1. Check type.
                     is_option_type: is_type_eq(&field.ty, "Option"),
                     is_vec_type: is_type_eq(&field.ty, "Vec"),
                 });
@@ -110,6 +111,7 @@ pub fn init_field_macro_helpers(struct_data: &Data) -> Vec<BuilderMacroFieldHelp
     helpers
 }
 
+// Key 1. Check type.
 // Check whether type (ty) is the specified type (tystr).
 pub fn is_type_eq(ty: &Type, tystr: &str) -> bool {
     if let Type::Path(type_path) = ty {
