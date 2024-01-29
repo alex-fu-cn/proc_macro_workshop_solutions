@@ -5,7 +5,6 @@ use syn::{parse_macro_input, DeriveInput};
 mod utils;
 use utils::*;
 
-// Key 1. builder attribute must be configured.
 #[proc_macro_derive(Builder, attributes(builder))]
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
@@ -16,7 +15,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let builder_struct_ident = format_ident!("{}Builder", derive_struct_ident);
     let struct_data = ast.data;
 
-    let helpers = init_field_macro_helpers(&struct_data);
+    let helpers = match init_field_macro_helpers(&struct_data) {
+        Ok(vec) => vec,
+        Err(e) => {
+            // Key 4. Error returned.
+            return e;
+        }
+    };
 
     let builder_field_definition_block = helpers.iter().map(|h| h.field_defintion_inner_form());
     let builder_definition_block = quote! {
@@ -50,7 +55,6 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
     };
 
-    // Key 5. generate and pupulate the code blocks
     let builder_field_each_setter = helpers
         .iter()
         .map(|h: &BuilderMacroFieldHelper<'_>| h.field_setter_each_form());

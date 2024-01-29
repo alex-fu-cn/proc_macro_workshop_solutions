@@ -10,7 +10,6 @@ pub struct BuilderMacroFieldHelper<'a> {
     field_type: &'a Type,
     is_option_type: bool,
     is_vec_type: bool,
-    // Key 2. attributes extracted and saved here
     field_attributes: HashMap<String, Option<String>>,
 }
 
@@ -94,7 +93,6 @@ impl<'a> BuilderMacroFieldHelper<'a> {
         }
     }
 
-    // Key 4. Generate the code: fn arg(...)
     // Only make sense if the type is Vec<T>
     pub fn field_setter_each_form(&self) -> proc_macro2::TokenStream {
         let name = format_ident!("{}", self.field_name);
@@ -129,14 +127,20 @@ impl<'a> BuilderMacroFieldHelper<'a> {
 }
 
 // Initialize helper vector.
-pub fn init_field_macro_helpers(struct_data: &Data) -> Vec<BuilderMacroFieldHelper> {
+pub fn init_field_macro_helpers(
+    struct_data: &Data,
+) -> Result<Vec<BuilderMacroFieldHelper>, proc_macro::TokenStream> {
     let mut helpers: Vec<BuilderMacroFieldHelper> = Vec::new();
     if let syn::Data::Struct(data_struct) = &struct_data {
         if let syn::Fields::Named(fields) = &data_struct.fields {
             for field in &fields.named {
                 let field_name = field.ident.to_token_stream().to_string();
-                // Key 3. extract field's attributes
                 let parsed_attrs = extract_field_attributes(&field, "builder");
+                // Key 3. Pass error to caller.
+                if parsed_attrs.is_err() {
+                    let error = parsed_attrs.unwrap_err();
+                    return Err(error.to_compile_error().into());
+                }
                 helpers.push(BuilderMacroFieldHelper {
                     field_name: field_name,
                     field_type: &field.ty,
@@ -147,7 +151,7 @@ pub fn init_field_macro_helpers(struct_data: &Data) -> Vec<BuilderMacroFieldHelp
             }
         }
     }
-    helpers
+    Ok(helpers)
 }
 
 // Check whether type (ty) is the specified type (tystr).
@@ -202,7 +206,7 @@ fn extract_field_attributes(
                         .ok(); // Turn Result into Option
                     attrs_map.insert(key, value);
                 } else {
-                    // e.1 Identify the error
+                    // Key 1. Identify the error with expected span.
                     compile_error = Some(syn::Error::new_spanned(
                         attr.meta.to_token_stream(),
                         "expected `builder(each = \"...\")`",
@@ -214,7 +218,7 @@ fn extract_field_attributes(
         }
     }
     if compile_error.is_some() {
-        // e.2 Generate the error
+        // Key 2. Escalate the error
         Err(compile_error.unwrap())
     } else {
         Ok(attrs_map)
