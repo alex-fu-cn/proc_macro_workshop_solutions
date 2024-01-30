@@ -5,7 +5,8 @@ use syn::{parse_macro_input, DeriveInput};
 mod utils;
 use utils::*;
 
-#[proc_macro_derive(CustomDebug)]
+// Key 1. "debug" attribute configured here.
+#[proc_macro_derive(CustomDebug, attributes(debug))]
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 

@@ -37,6 +37,7 @@ pub fn init_debug_macro_helpers(
         if let syn::Fields::Named(fields) = &data_struct.fields {
             for field in &fields.named {
                 let field_name = field.ident.to_token_stream().to_string();
+                // key 2. Extract the value of debug attribute.
                 let debug_format = extract_meta_name_value(&field, "debug");
                 helpers.push(DebugMacroFieldHelper {
                     field_name,
