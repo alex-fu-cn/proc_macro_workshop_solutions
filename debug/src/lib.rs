@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, DeriveInput, WherePredicate};
+use syn::{parse_macro_input, DeriveInput};
 
 mod utils;
 use utils::*;
@@ -9,54 +9,49 @@ use utils::*;
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 
-    let derive_struct_ident = ast.ident;
-    let struct_data = &ast.data;
+    let derive_struct_ident = &ast.ident;
 
     // initialize helpers
-    let helpers = match init_debug_macro_helpers(struct_data) {
+    let helper = match DebugMacroHelper::new(&ast) {
         Ok(vec) => vec,
         Err(e) => {
             return e;
         }
     };
 
-    let field_debug_inner = helpers.iter().map(|f| f.to_debug_inner_form());
+    let field_debug_inner = helper.field_helpers.iter().map(|f| f.to_debug_inner_form());
 
     // If derived struct has generic type.
     let struct_generic = &ast.generics;
     // println!("{:#?}", struct_generic);
 
-    // Key 1. Get generic variables
+    // In order to pass debug-05, all generic types that not contained by PhantomData must implemented Debug trait.
+    // So we must have these key steps:
+    // a. Get the generic type code fragement from source struct, because our new predicates shall be added to existed ones.
     let (impl_generics, ty_generics, where_clause) = struct_generic.split_for_impl();
 
-    // Key 2. Process, there will be four situations
-    //  a. Derive struct does not have generic type
-    //  b. Derive struct has generic types but it doesn't have where clause
-    //  c. Derive struct has generic types and it has where clause
-    //  d. Derive struct has generic types and it has Debug & Display in where clause (ignore, leave it to compiler.)
-
+    // b. Construct the where clause.
+    //    1) If there is generic type that's not contained by PhantomData, add `T: Debug` to where clause.
+    //    2) If the generic type is contained by PhantomData, leave it unchanged.
     let is_generic_struct = ast.generics.params.len() > 0;
+    let where_clause_parts = helper.to_required_debug_where_clause();
     let debug_where_clause = if is_generic_struct {
-        let debug_predicate: WherePredicate = parse_quote!(T: std::fmt::Debug + std::fmt::Display);
-        let new_where_clause = if where_clause.is_none() {
-            // b
+        if where_clause.is_some() {
+            let wc = where_clause.unwrap();
             quote! {
-                where #debug_predicate
+                #wc,
+                #(#where_clause_parts),*
             }
         } else {
-            // c
             quote! {
-                #where_clause
-                #debug_predicate
+                where #(#where_clause_parts),*
             }
-        };
-        new_where_clause
+        }
     } else {
-        // a
         quote! {}
     };
 
-    // Key 3. Populate code block correctly.
+    // c. Change the implementation block accordingly.
     let expanded = quote! {
         impl #impl_generics std::fmt::Debug for #derive_struct_ident #ty_generics #debug_where_clause {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
